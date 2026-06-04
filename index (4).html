@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>刷卡機借用系統</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:sans-serif;background:#f5f5f5;display:flex;justify-content:center;padding:24px 16px;}
+    .card{background:#fff;border-radius:12px;padding:24px;max-width:640px;width:100%;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+    h1{font-size:18px;font-weight:700;color:#1a1a1a;margin-bottom:4px;}
+    .subtitle{font-size:13px;color:#888;margin-bottom:16px;}
+    .tabs{display:flex;border-bottom:2px solid #eee;margin-bottom:20px;}
+    .tab-btn{padding:8px 20px;font-size:14px;font-weight:500;color:#888;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;}
+    .tab-btn.active{color:#0C447C;border-bottom:2px solid #0C447C;}
+    .step-bar{display:flex;align-items:center;margin-bottom:1.25rem;}
+    .step{display:flex;align-items:center;gap:6px;font-size:13px;color:#aaa;}
+    .step.active{color:#185FA5;font-weight:500;}
+    .step.done{color:#27500A;}
+    .step-num{width:22px;height:22px;border-radius:50%;border:1px solid #ccc;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+    .step.active .step-num{background:#E6F1FB;border-color:#185FA5;color:#185FA5;}
+    .step.done .step-num{background:#EAF3DE;border-color:#3B6D11;color:#27500A;}
+    .step-line{flex:1;height:1px;background:#eee;margin:0 8px;}
+    .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+    .month-title{font-size:15px;font-weight:500;color:#1a1a1a;}
+    .nav-btn{background:#fff;border:1px solid #bbb;border-radius:6px;padding:6px 14px;cursor:pointer;color:#333;font-size:12px;font-weight:500;}
+    .nav-btn:hover{background:#f0f0f0;}
+    .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;}
+    .week-label{text-align:center;font-size:11px;color:#999;padding:3px 0;}
+    .day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:16px;}
+    .day-cell{text-align:center;padding:7px 2px;border-radius:6px;font-size:12px;border:1px solid transparent;}
+    .day-cell.empty{cursor:default;}
+    .day-cell.past{color:#ccc;background:#f7f7f7;cursor:not-allowed;}
+    .day-cell.avail{color:#1a1a1a;background:#fff;border:1px solid #ddd;cursor:pointer;}
+    .day-cell.avail:hover{background:#f0f4ff;border-color:#185FA5;}
+    .day-cell.today{color:#185FA5;background:#fff;border:1.5px solid #185FA5;font-weight:700;cursor:pointer;}
+    .day-cell.today:hover{background:#E6F1FB;}
+    .day-cell.selected{background:#185FA5;color:#fff;border-color:#185FA5;font-weight:600;cursor:pointer;}
+    .divider{border:none;border-top:1px solid #eee;margin:12px 0;}
+    .section-label{font-size:13px;font-weight:600;color:#444;margin-bottom:8px;}
+    .hint{font-size:11px;color:#aaa;margin-bottom:8px;}
+    .legend{display:flex;gap:12px;margin-bottom:8px;}
+    .legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#888;}
+    .legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+    .slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+    .slot{padding:10px 4px;text-align:center;font-size:12px;border:1px solid #ddd;border-radius:8px;cursor:pointer;background:#fff;color:#333;user-select:none;}
+    .slot:hover:not(.booked){background:#f0f4ff;border-color:#185FA5;}
+    .slot.booked{background:#f5f5f5;color:#bbb;cursor:not-allowed;text-decoration:line-through;}
+    .slot.selected{background:#0C447C;color:#fff;border-color:#0C447C;font-weight:600;}
+    .slot-sub{font-size:10px;margin-top:2px;opacity:0.6;}
+    .bottom-bar{background:#fff;border:1.5px solid #185FA5;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;border-radius:8px;}
+    .bottom-info{font-size:13px;color:#0C447C;line-height:1.6;}
+    .placeholder-bar{background:#f9f9f9;border:1px dashed #ddd;border-radius:8px;padding:12px 16px;text-align:center;font-size:13px;color:#bbb;margin-top:16px;}
+    .summary-box{background:#f5f5f5;border-radius:8px;padding:12px 14px;font-size:13px;color:#666;margin-bottom:16px;line-height:1.8;}
+    .summary-box strong{color:#1a1a1a;font-weight:600;}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+    .form-group{display:flex;flex-direction:column;gap:4px;}
+    .form-group.full{grid-column:1/-1;}
+    .form-section{font-size:12px;font-weight:600;color:#185FA5;padding:6px 0 4px;border-bottom:1px solid #E6F1FB;margin-bottom:2px;grid-column:1/-1;}
+    label{font-size:12px;font-weight:600;color:#555;}
+    label span{color:#A32D2D;}
+    input,select{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;background:#fff;color:#1a1a1a;font-family:inherit;}
+    input:focus,select:focus{outline:none;border-color:#185FA5;}
+    input.err{border-color:#A32D2D;}
+    .err-msg{font-size:11px;color:#A32D2D;min-height:14px;}
+    .time-row{display:flex;align-items:center;gap:8px;}
+    .time-row input{flex:1;}
+    .time-sep{font-size:13px;color:#888;white-space:nowrap;}
+    .radio-group{display:flex;gap:16px;padding:6px 0;}
+    .radio-label{display:flex;align-items:center;gap:6px;font-size:13px;color:#333;cursor:pointer;}
+    .radio-label input[type=radio]{width:auto;}
+    .btn-row{display:flex;gap:10px;margin-top:12px;}
+    .btn-primary{background:#0C447C;color:#fff;border:2px solid #0C447C;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer;font-weight:600;}
+    .btn-primary:hover{background:#042C53;border-color:#042C53;}
+    .btn-primary:disabled{background:#aaa;border-color:#aaa;cursor:not-allowed;}
+    .btn-next{background:#0C447C;color:#fff;border:2px solid #0C447C;border-radius:8px;padding:9px 20px;font-size:13px;cursor:pointer;font-weight:600;white-space:nowrap;}
+    .btn-next:hover{background:#042C53;border-color:#042C53;}
+    .btn-ghost{background:#fff;border:2px solid #888;border-radius:8px;padding:10px 16px;font-size:13px;cursor:pointer;color:#444;font-weight:500;}
+    .btn-ghost:hover{background:#f5f5f5;}
+    .btn-danger{background:#fff;border:2px solid #A32D2D;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;color:#A32D2D;font-weight:500;}
+    .btn-danger:hover{background:#FCEBEB;}
+    .success-card{background:#EAF3DE;border:1px solid #3B6D11;border-radius:12px;padding:2rem;text-align:center;}
+    .success-title{font-size:17px;font-weight:600;color:#27500A;margin:12px 0 8px;}
+    .success-detail{font-size:13px;color:#3B6D11;line-height:2;}
+    .err-box{background:#FCEBEB;border:1px solid #A32D2D;border-radius:8px;padding:12px 16px;font-size:13px;color:#791F1F;margin-bottom:12px;display:none;}
+    .loading-bar{background:#E6F1FB;border:1px solid #185FA5;border-radius:8px;padding:10px 14px;font-size:13px;color:#0C447C;text-align:center;margin-top:8px;display:none;}
+    .init-bar{background:#f5f5f5;border-radius:8px;padding:10px 14px;font-size:13px;color:#888;text-align:center;margin-bottom:12px;}
+    .query-box{display:flex;gap:8px;margin-bottom:16px;}
+    .query-box input{flex:1;}
+    .record-card{border:1px solid #ddd;border-radius:8px;padding:14px 16px;margin-bottom:10px;}
+    .record-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+    .record-title{font-size:14px;font-weight:600;color:#1a1a1a;}
+    .record-date{font-size:12px;color:#888;margin-bottom:4px;}
+    .record-info{font-size:12px;color:#555;line-height:1.8;}
+    .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500;}
+    .badge-ok{background:#EAF3DE;color:#27500A;}
+    .badge-credit{background:#E6F1FB;color:#0C447C;}
+    .empty-state{text-align:center;color:#aaa;font-size:13px;padding:2rem 0;}
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>刷卡機借用系統</h1>
+  <p class="subtitle">護理部</p>
+  <div id="err-box" class="err-box"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('booking')">預約借用</button>
+    <button class="tab-btn" onclick="switchTab('query')">查詢記錄</button>
+  </div>
+
+  <div id="tab-booking">
+    <div class="step-bar">
+      <div class="step active" id="s1"><div class="step-num" id="sn1">1</div>選擇時段</div>
+      <div class="step-line"></div>
+      <div class="step" id="s2"><div class="step-num" id="sn2">2</div>填寫資料</div>
+      <div class="step-line"></div>
+      <div class="step" id="s3"><div class="step-num" id="sn3">3</div>完成預約</div>
+    </div>
+
+    <div id="page-calendar">
+      <div id="init-bar" class="init-bar">載入借用資料中...</div>
+      <div class="cal-header">
+        <button class="nav-btn" onclick="changeMonth(-1)">← 上個月</button>
+        <span class="month-title" id="month-title"></span>
+        <button class="nav-btn" onclick="changeMonth(1)">下個月 →</button>
+      </div>
+      <div class="week-grid">
+        <div class="week-label">日</div><div class="week-label">一</div><div class="week-label">二</div>
+        <div class="week-label">三</div><div class="week-label">四</div><div class="week-label">五</div><div class="week-label">六</div>
+      </div>
+      <div class="day-grid" id="day-grid"></div>
+      <div class="divider"></div>
+      <div id="slot-area"><p class="hint" style="text-align:center;padding:1rem 0">請先點選上方日期</p></div>
+      <div id="bottom-area"></div>
+    </div>
+
+    <div id="page-form" style="display:none">
+      <div class="summary-box" id="form-summary"></div>
+      <div class="form-grid">
+        <div class="form-section">借用人資料</div>
+        <div class="form-group full">
+          <label>借用單位 <span>*</span></label>
+          <input type="text" id="f-unit" placeholder="請填寫借用單位名稱">
+          <div class="err-msg" id="e-unit"></div>
+        </div>
+        <div class="form-group">
+          <label>借用人姓名 <span>*</span></label>
+          <input type="text" id="f-name" placeholder="請輸入姓名">
+          <div class="err-msg" id="e-name"></div>
+        </div>
+        <div class="form-group">
+          <label>人事號 <span>*</span></label>
+          <input type="text" id="f-empid" placeholder="請輸入人事號">
+          <div class="err-msg" id="e-empid"></div>
+        </div>
+        <div class="form-group full">
+          <label>O365 帳號 <span>*</span></label>
+          <input type="text" id="f-email" value="@chimei.org.tw" onfocus="moveCursor(this)">
+          <div class="err-msg" id="e-email"></div>
+        </div>
+        <div class="form-section">課程資料</div>
+        <div class="form-group full">
+          <label>課程名稱 <span>*</span></label>
+          <input type="text" id="f-course" placeholder="請輸入課程名稱">
+          <div class="err-msg" id="e-course"></div>
+        </div>
+        <div class="form-group full">
+          <label>講師名稱 <span>*</span></label>
+          <input type="text" id="f-teacher" placeholder="請輸入講師姓名">
+          <div class="err-msg" id="e-teacher"></div>
+        </div>
+        <div class="form-group full">
+          <label>課程時間 <span>*</span></label>
+          <div class="time-row">
+            <input type="time" id="f-time-start">
+            <span class="time-sep">至</span>
+            <input type="time" id="f-time-end">
+          </div>
+          <div class="err-msg" id="e-time"></div>
+        </div>
+        <div class="form-group full">
+          <label>課程地點 <span>*</span></label>
+          <input type="text" id="f-place" placeholder="請輸入課程地點">
+          <div class="err-msg" id="e-place"></div>
+        </div>
+        <div class="form-group full">
+          <label>是否申請繼續教育積分 <span>*</span></label>
+          <div class="radio-group">
+            <label class="radio-label"><input type="radio" name="credit" value="是"> 是</label>
+            <label class="radio-label"><input type="radio" name="credit" value="否" checked> 否</label>
+          </div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-ghost" onclick="goBack()">← 重新選時段</button>
+        <button class="btn-primary" id="submit-btn" onclick="submitForm()">確認送出預約</button>
+      </div>
+      <div id="loading-bar" class="loading-bar">儲存中，請稍候...</div>
+    </div>
+
+    <div id="page-done" style="display:none">
+      <div class="success-card">
+        <div style="font-size:36px">✓</div>
+        <div class="success-title">預約完成！</div>
+        <div class="success-detail" id="done-detail"></div>
+      </div>
+      <div style="margin-top:1rem;text-align:center;">
+        <button class="btn-ghost" onclick="resetAll()">再預約一次</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-query" style="display:none">
+    <div class="query-box">
+      <input type="text" id="q-empid" placeholder="請輸入人事號" onkeydown="if(event.key==='Enter')queryRecords()">
+      <button class="btn-next" onclick="queryRecords()">查詢</button>
+    </div>
+    <div id="query-result"></div>
+  </div>
+</div>
+
+<script>
+const GAS_URL='https://script.google.com/macros/s/AKfycbyMaryG2K2pOKFo3q60NRuSqsyUrL_ab3i5gShpsM_DF6NeNR9SZvCUNTF1VOUEn5UP/exec';
+
+// ===== 全域借用資料快取 =====
+let allBookings = {}; // { 'YYYY-M-D': [7,8,9] }
+let dataLoaded = false;
+
+// 頁面載入時一次抓所有資料
+function loadAllBookings(){
+  fetch(GAS_URL)
+    .then(r=>r.json())
+    .then(data=>{
+      allBookings={};
+      if(data.bookings) data.bookings.forEach(b=>{
+        if(!allBookings[b.date]) allBookings[b.date]=[];
+        if(b.slots) b.slots.forEach(h=>{ if(!allBookings[b.date].includes(h)) allBookings[b.date].push(h); });
+      });
+      dataLoaded=true;
+      document.getElementById('init-bar').style.display='none';
+      if(selDate) renderSlots();
+    })
+    .catch(()=>{
+      dataLoaded=true;
+      document.getElementById('init-bar').style.display='none';
+    });
+}
+
+function getBookedForDate(date){
+  const dateStr=date.getFullYear()+'-'+(date.getMonth()+1)+'-'+date.getDate();
+  return allBookings[dateStr]||[];
+}
+
+// ===== 頁籤 =====
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',(i===0&&tab==='booking')||(i===1&&tab==='query')));
+  document.getElementById('tab-booking').style.display=tab==='booking'?'block':'none';
+  document.getElementById('tab-query').style.display=tab==='query'?'block':'none';
+}
+
+// ===== 查詢 =====
+function queryRecords(){
+  const empid=document.getElementById('q-empid').value.trim();
+  if(!empid){showErr('請輸入人事號');return;}
+  const result=document.getElementById('query-result');
+  result.innerHTML='<p class="hint" style="text-align:center;padding:1rem 0">查詢中...</p>';
+  fetch(GAS_URL+'?empid='+encodeURIComponent(empid))
+    .then(r=>r.json())
+    .then(data=>{
+      if(!data.bookings||data.bookings.length===0){result.innerHTML='<div class="empty-state">查無借用記錄</div>';return;}
+      result.innerHTML=data.bookings.map((b,idx)=>`
+        <div class="record-card" id="record-${idx}">
+          <div class="record-top">
+            <div>
+              <div class="record-title">${b.course}</div>
+              <div class="record-date">借用日期：${b.date}　${b.slotsText}</div>
+            </div>
+            <button class="btn-danger" onclick="cancelRecord(${idx},'${b.createdAt}','${b.date}','${b.name}')">取消預約</button>
+          </div>
+          <div class="record-info">
+            借用單位：${b.unit}　借用人：${b.name}<br>
+            講師：${b.teacher}　課程時間：${b.timeStart} - ${b.timeEnd}<br>
+            課程地點：${b.place}　<span class="badge ${b.credit==='是'?'badge-credit':'badge-ok'}">${b.credit==='是'?'申請積分':'不申請積分'}</span>
+          </div>
+        </div>`).join('');
+    })
+    .catch(()=>{result.innerHTML='<div class="empty-state">查詢失敗，請稍後再試</div>';});
+}
+
+function cancelRecord(idx,createdAt,date,name){
+  if(!confirm('確定要取消這筆預約嗎？'))return;
+  fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'cancel',createdAt,date,name})})
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.success){
+        document.getElementById('record-'+idx).remove();
+        // 更新本地快取
+        const dateStr=date;
+        loadAllBookings();
+        const result=document.getElementById('query-result');
+        if(!result.querySelector('.record-card')) result.innerHTML='<div class="empty-state">查無借用記錄</div>';
+      } else {
+        showErr('取消失敗：'+(data.error||'未知錯誤'));
+      }
+    })
+    .catch(()=>showErr('連線失敗，請稍後再試'));
+}
+
+// ===== 日曆 =====
+const TODAY=new Date(); TODAY.setHours(0,0,0,0);
+let curYear=TODAY.getFullYear(),curMonth=TODAY.getMonth();
+let selDate=null,selSlots=new Set();
+const HOURS=Array.from({length:11},(_,i)=>7+i);
+
+function fk(d,h){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()+'-'+h;}
+function fd(d){const w=['日','一','二','三','四','五','六'];return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate()+' (週'+w[d.getDay()]+')';}
+function fh(h){return (h<10?'0':'')+h+':00';}
+function moveCursor(el){setTimeout(()=>el.setSelectionRange(0,0),0);}
+function showErr(msg){const b=document.getElementById('err-box');b.textContent=msg;b.style.display='block';setTimeout(()=>b.style.display='none',5000);}
+
+function changeMonth(dir){
+  curMonth+=dir;if(curMonth>11){curMonth=0;curYear++;}if(curMonth<0){curMonth=11;curYear--;}
+  selSlots.clear();renderCal();renderSlots();
+}
+
+function renderCal(){
+  document.getElementById('month-title').textContent=curYear+'年'+(curMonth+1)+'月';
+  const grid=document.getElementById('day-grid');grid.innerHTML='';
+  const first=new Date(curYear,curMonth,1).getDay();
+  const days=new Date(curYear,curMonth+1,0).getDate();
+  for(let i=0;i<first;i++){const e=document.createElement('div');e.className='day-cell empty';grid.appendChild(e);}
+  for(let d=1;d<=days;d++){
+    const e=document.createElement('div');
+    const date=new Date(curYear,curMonth,d);date.setHours(0,0,0,0);
+    const past=date<TODAY,tod=date.getTime()===TODAY.getTime(),sel=selDate&&date.getTime()===selDate.getTime();
+    if(sel) e.className='day-cell selected';
+    else if(past) e.className='day-cell past';
+    else if(tod) e.className='day-cell today';
+    else e.className='day-cell avail';
+    e.textContent=d;
+    if(!past)(dt=>{e.onclick=()=>{selDate=dt;selSlots.clear();renderCal();renderSlots();};})(date);
+    grid.appendChild(e);
+  }
+}
+
+function renderSlots(){
+  const area=document.getElementById('slot-area'),bot=document.getElementById('bottom-area');
+  if(!selDate){area.innerHTML='<p class="hint" style="text-align:center;padding:1rem 0">請先點選上方日期</p>';bot.innerHTML='';return;}
+  const booked=getBookedForDate(selDate);
+  const sorted=[...selSlots].sort((a,b)=>a-b);
+  let html=`<div class="section-label">${fd(selDate)}　可借用時段</div>`;
+  html+=`<div class="legend"><div class="legend-item"><div class="legend-dot" style="background:#fff;border:1px solid #ddd"></div>可借用</div><div class="legend-item"><div class="legend-dot" style="background:#0C447C"></div>已選擇</div><div class="legend-item"><div class="legend-dot" style="background:#f5f5f5;border:1px solid #eee"></div>已借出</div></div>`;
+  html+=`<p class="hint">可點選多個時段</p><div class="slot-grid">`;
+  HOURS.forEach(h=>{
+    const isBooked=booked.includes(h),isSel=selSlots.has(h);
+    html+=`<div class="slot${isBooked?' booked':''}${isSel?' selected':''}"${isBooked?'':` onclick="toggleSlot(${h})"`}><div>${fh(h)}</div><div class="slot-sub">→ ${fh(h+1)}</div></div>`;
+  });
+  html+='</div>';
+  area.innerHTML=html;
+  if(sorted.length>0){
+    const timeStr=sorted.map(h=>fh(h)+' - '+fh(h+1)).join('、');
+    bot.innerHTML=`<div class="bottom-bar"><div class="bottom-info"><strong>${fd(selDate)}</strong><br>${timeStr}　共 ${sorted.length} 個時段</div><button class="btn-next" onclick="goToForm()">填寫借用資料 →</button></div>`;
+  } else {
+    bot.innerHTML='<div class="placeholder-bar">請選擇至少一個時段</div>';
+  }
+}
+
+function toggleSlot(h){if(selSlots.has(h))selSlots.delete(h);else selSlots.add(h);renderSlots();}
+
+function goToForm(){
+  document.getElementById('page-calendar').style.display='none';
+  document.getElementById('page-form').style.display='block';
+  document.getElementById('s1').className='step done';document.getElementById('sn1').textContent='✓';
+  document.getElementById('s2').className='step active';
+  const sorted=[...selSlots].sort((a,b)=>a-b);
+  const timeStr=sorted.map(h=>fh(h)+' - '+fh(h+1)).join('、');
+  document.getElementById('form-summary').innerHTML=`借用日期：<strong>${fd(selDate)}</strong><br>借用時段：<strong>${timeStr}</strong>（共 ${sorted.length} 個時段）`;
+}
+
+function goBack(){
+  document.getElementById('page-form').style.display='none';
+  document.getElementById('page-calendar').style.display='block';
+  document.getElementById('s1').className='step active';document.getElementById('sn1').textContent='1';
+  document.getElementById('s2').className='step';
+}
+
+function submitForm(){
+  let ok=true;
+  [['f-unit','e-unit','請填寫借用單位'],['f-name','e-name','請填寫姓名'],
+   ['f-empid','e-empid','請填寫人事號'],['f-course','e-course','請填寫課程名稱'],
+   ['f-teacher','e-teacher','請填寫講師名稱'],['f-place','e-place','請填寫課程地點']
+  ].forEach(([fid,eid,msg])=>{
+    const el=document.getElementById(fid),err=document.getElementById(eid);
+    if(!el.value.trim()){el.classList.add('err');err.textContent=msg;ok=false;}
+    else{el.classList.remove('err');err.textContent='';}
+  });
+  const emailEl=document.getElementById('f-email'),emailErr=document.getElementById('e-email');
+  if(!emailEl.value.trim()||emailEl.value.trim()==='@chimei.org.tw'){emailEl.classList.add('err');emailErr.textContent='請填寫 O365 帳號';ok=false;}
+  else{emailEl.classList.remove('err');emailErr.textContent='';}
+  const ts=document.getElementById('f-time-start').value,te=document.getElementById('f-time-end').value,terr=document.getElementById('e-time');
+  if(!ts||!te){terr.textContent='請填寫課程起訖時間';ok=false;}
+  else if(ts>=te){terr.textContent='結束時間須晚於開始時間';ok=false;}
+  else{terr.textContent='';}
+  if(!ok)return;
+
+  const btn=document.getElementById('submit-btn');
+  const loading=document.getElementById('loading-bar');
+  btn.disabled=true;btn.textContent='儲存中...';loading.style.display='block';
+
+  const sorted=[...selSlots].sort((a,b)=>a-b);
+  const dateStr=selDate.getFullYear()+'-'+(selDate.getMonth()+1)+'-'+selDate.getDate();
+  const payload={
+    date:dateStr,slots:sorted.join(','),
+    unit:document.getElementById('f-unit').value.trim(),
+    name:document.getElementById('f-name').value.trim(),
+    empid:document.getElementById('f-empid').value.trim(),
+    email:document.getElementById('f-email').value.trim(),
+    course:document.getElementById('f-course').value.trim(),
+    teacher:document.getElementById('f-teacher').value.trim(),
+    timeStart:ts,timeEnd:te,
+    place:document.getElementById('f-place').value.trim(),
+    credit:document.querySelector('input[name="credit"]:checked').value
+  };
+
+  fetch(GAS_URL,{method:'POST',body:JSON.stringify(payload)})
+  .then(r=>r.json())
+  .then(data=>{
+    if(data.success){
+      // 更新本地快取
+      if(!allBookings[dateStr]) allBookings[dateStr]=[];
+      sorted.forEach(h=>{ if(!allBookings[dateStr].includes(h)) allBookings[dateStr].push(h); });
+      const timeStr=sorted.map(h=>fh(h)+' - '+fh(h+1)).join('、');
+      document.getElementById('page-form').style.display='none';
+      document.getElementById('page-done').style.display='block';
+      document.getElementById('s2').className='step done';document.getElementById('sn2').textContent='✓';
+      document.getElementById('s3').className='step active';
+      document.getElementById('done-detail').innerHTML=
+        payload.unit+'　'+payload.name+'<br>課程：'+payload.course+'<br>'+
+        '講師：'+payload.teacher+'<br>課程時間：'+ts+' - '+te+'<br>'+
+        '課程地點：'+payload.place+'<br>繼續教育積分：'+payload.credit+'<br>'+
+        '刷卡機借用：'+fd(selDate)+'　'+timeStr+'<br><br>確認信將寄送至 '+payload.email;
+    } else {
+      showErr('儲存失敗：'+(data.error||'未知錯誤'));
+      btn.disabled=false;btn.textContent='確認送出預約';loading.style.display='none';
+    }
+  })
+  .catch(()=>{
+    showErr('連線失敗，請重試');
+    btn.disabled=false;btn.textContent='確認送出預約';loading.style.display='none';
+  });
+}
+
+function resetAll(){
+  selDate=null;selSlots.clear();
+  document.getElementById('page-done').style.display='none';
+  document.getElementById('page-calendar').style.display='block';
+  ['s1','s2','s3'].forEach((id,i)=>{document.getElementById(id).className='step'+(i===0?' active':'');document.getElementById('sn'+(i+1)).textContent=i+1;});
+  ['f-unit','f-name','f-empid','f-course','f-teacher','f-place','f-time-start','f-time-end'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('f-email').value='@chimei.org.tw';
+  document.querySelector('input[name="credit"][value="否"]').checked=true;
+  renderCal();renderSlots();
+}
+
+// 初始化
+renderCal();
+renderSlots();
+loadAllBookings(); // 背景載入所有借用資料
+</script>
+</body>
+</html>
