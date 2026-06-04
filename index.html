@@ -173,9 +173,9 @@
         <div class="form-group full">
           <label>課程時間 <span>*</span></label>
           <div class="time-row">
-            <input type="time" id="f-time-start" step="60">
+            <select id="f-time-start"><option value="">選擇開始時間</option></select>
             <span class="time-sep">至</span>
-            <input type="time" id="f-time-end" step="60">
+            <select id="f-time-end"><option value="">選擇結束時間</option></select>
           </div>
           <div class="err-msg" id="e-time"></div>
         </div>
@@ -473,7 +473,23 @@ function resetAll(){
   renderCal();renderSlots();
 }
 
+// 產生時間選項
+function buildTimeOptions(){
+  ['f-time-start','f-time-end'].forEach(id=>{
+    const sel=document.getElementById(id);
+    for(let h=0;h<24;h++){
+      ['00','30'].forEach(m=>{
+        const val=String(h).padStart(2,'0')+':'+m;
+        const opt=document.createElement('option');
+        opt.value=val; opt.textContent=val;
+        sel.appendChild(opt);
+      });
+    }
+  });
+}
+
 // 初始化
+buildTimeOptions();
 renderCal();
 renderSlots();
 loadAllBookings(); // 背景載入所有借用資料
