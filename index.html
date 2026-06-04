@@ -155,7 +155,7 @@
           <div class="err-msg" id="e-empid"></div>
         </div>
         <div class="form-group full">
-          <label>O365 帳號 <span>*</span></label>
+          <label>O365 帳號 <span>*</span>　<span style="font-weight:400;color:#888">（寄送借用結果以及簽到資料使用）</span></label>
           <input type="text" id="f-email" value="@chimei.org.tw" onfocus="moveCursor(this)">
           <div class="err-msg" id="e-email"></div>
         </div>
@@ -173,9 +173,9 @@
         <div class="form-group full">
           <label>課程時間 <span>*</span></label>
           <div class="time-row">
-            <input type="time" id="f-time-start">
+            <input type="time" id="f-time-start" step="60">
             <span class="time-sep">至</span>
-            <input type="time" id="f-time-end">
+            <input type="time" id="f-time-end" step="60">
           </div>
           <div class="err-msg" id="e-time"></div>
         </div>
@@ -218,6 +218,9 @@
     </div>
     <div id="query-result"></div>
   </div>
+
+<p style="font-size:12px;color:#aaa;text-align:center;margin-top:20px;padding-bottom:8px">負責人：護理部林紫姍護理師　分機 #33008</p>
+
 </div>
 
 <script>
@@ -352,9 +355,17 @@ function renderSlots(){
   let html=`<div class="section-label">${fd(selDate)}　可借用時段</div>`;
   html+=`<div class="legend"><div class="legend-item"><div class="legend-dot" style="background:#fff;border:1px solid #ddd"></div>可借用</div><div class="legend-item"><div class="legend-dot" style="background:#0C447C"></div>已選擇</div><div class="legend-item"><div class="legend-dot" style="background:#f5f5f5;border:1px solid #eee"></div>已借出</div></div>`;
   html+=`<p class="hint">可點選多個時段</p><div class="slot-grid">`;
+  const nowHour = new Date().getHours();
+  const isToday = selDate.getTime() === TODAY.getTime();
   HOURS.forEach(h=>{
     const isBooked=booked.includes(h),isSel=selSlots.has(h);
-    html+=`<div class="slot${isBooked?' booked':''}${isSel?' selected':''}"${isBooked?'':` onclick="toggleSlot(${h})"`}><div>${fh(h)}</div><div class="slot-sub">→ ${fh(h+1)}</div></div>`;
+    const isPast = isToday && h <= nowHour;
+    const disabled = isBooked || isPast;
+    let cls='slot';
+    if(isPast) cls+=' booked';
+    else if(isBooked) cls+=' booked';
+    else if(isSel) cls+=' selected';
+    html+=`<div class="${cls}"${disabled?'':` onclick="toggleSlot(${h})"`}><div>${fh(h)}</div><div class="slot-sub">→ ${fh(h+1)}</div></div>`;
   });
   html+='</div>';
   area.innerHTML=html;
