@@ -477,8 +477,10 @@ function resetAll(){
 function buildTimeOptions(){
   ['f-time-start','f-time-end'].forEach(id=>{
     const sel=document.getElementById(id);
-    for(let h=0;h<24;h++){
+    for(let h=6;h<=19;h++){
       ['00','30'].forEach(m=>{
+        if(h===6&&m==='00') return; // 跳過 06:00
+        if(h===19&&m==='30') return; // 跳過 19:30
         const val=String(h).padStart(2,'0')+':'+m;
         const opt=document.createElement('option');
         opt.value=val; opt.textContent=val;
