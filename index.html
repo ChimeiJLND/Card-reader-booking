@@ -96,6 +96,18 @@
     .badge-ok{background:#EAF3DE;color:#27500A;}
     .badge-credit{background:#E6F1FB;color:#0C447C;}
     .empty-state{text-align:center;color:#aaa;font-size:13px;padding:2rem 0;}
+    /* 取消確認 Modal */
+    .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999;display:none;}
+    .modal-box{background:#fff;border-radius:12px;padding:24px;max-width:360px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.2);}
+    .modal-icon{text-align:center;font-size:36px;margin-bottom:12px;}
+    .modal-title{font-size:15px;font-weight:600;color:#1a1a1a;text-align:center;margin-bottom:8px;}
+    .modal-desc{font-size:13px;color:#666;text-align:center;margin-bottom:20px;line-height:1.6;}
+    .modal-desc strong{color:#A32D2D;}
+    .modal-btns{display:flex;gap:10px;}
+    .modal-btn-cancel{flex:1;background:#fff;border:2px solid #888;border-radius:8px;padding:10px;font-size:13px;cursor:pointer;color:#444;font-weight:500;}
+    .modal-btn-cancel:hover{background:#f5f5f5;}
+    .modal-btn-confirm{flex:1;background:#A32D2D;border:2px solid #A32D2D;border-radius:8px;padding:10px;font-size:13px;cursor:pointer;color:#fff;font-weight:600;}
+    .modal-btn-confirm:hover{background:#7a1f1f;border-color:#7a1f1f;}
   </style>
 </head>
 <body>
@@ -221,6 +233,19 @@
 
 <p style="font-size:12px;color:#aaa;text-align:center;margin-top:20px;padding-bottom:8px">負責人：護理部林紫姍護理師　分機 #33008</p>
 
+<!-- 取消確認 Modal -->
+<div class="modal-overlay" id="cancel-modal">
+  <div class="modal-box">
+    <div class="modal-icon">⚠️</div>
+    <div class="modal-title">確認取消預約</div>
+    <div class="modal-desc">您確定要取消<br><strong id="modal-course-name"></strong><br>這筆預約嗎？</div>
+    <div class="modal-btns">
+      <button class="modal-btn-cancel" onclick="closeModal()">返回</button>
+      <button class="modal-btn-confirm" onclick="confirmCancel()">確定取消</button>
+    </div>
+  </div>
+</div>
+
 </div>
 
 <script>
@@ -279,7 +304,7 @@ function queryRecords(){
               <div class="record-title">${b.course}</div>
               <div class="record-date">借用日期：${b.date}　${b.slotsText}</div>
             </div>
-            <button class="btn-danger" onclick="cancelRecord(${idx},'${b.createdAt}','${b.date}','${b.name}')">取消預約</button>
+            <button class="btn-danger" onclick="cancelRecord(${idx},'${b.createdAt}','${b.date}','${b.name}','${b.course}')">取消預約</button>
           </div>
           <div class="record-info">
             借用單位：${b.unit}　借用人：${b.name}<br>
@@ -291,18 +316,37 @@ function queryRecords(){
     .catch(()=>{result.innerHTML='<div class="empty-state">查詢失敗，請稍後再試</div>';});
 }
 
-function cancelRecord(idx,createdAt,date,name){
-  if(!confirm('確定要取消這筆預約嗎？'))return;
+// Modal 取消預約
+let pendingCancel = null;
+
+function cancelRecord(idx,createdAt,date,name,course){
+  pendingCancel = {idx,createdAt,date,name,course};
+  document.getElementById('modal-course-name').textContent = '「'+course+'」';
+  document.getElementById('cancel-modal').style.display='flex';
+}
+
+function closeModal(){
+  document.getElementById('cancel-modal').style.display='none';
+  pendingCancel=null;
+}
+
+function confirmCancel(){
+  if(!pendingCancel)return;
+  const {idx,createdAt,date,name,course}=pendingCancel;
+  closeModal();
   fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'cancel',createdAt,date,name})})
     .then(r=>r.json())
     .then(data=>{
       if(data.success){
         document.getElementById('record-'+idx).remove();
-        // 更新本地快取
-        const dateStr=date;
         loadAllBookings();
         const result=document.getElementById('query-result');
         if(!result.querySelector('.record-card')) result.innerHTML='<div class="empty-state">查無借用記錄</div>';
+        const successMsg=document.createElement('div');
+        successMsg.style.cssText='background:#EAF3DE;border:1px solid #3B6D11;border-radius:8px;padding:12px 16px;font-size:13px;color:#27500A;margin-bottom:12px;text-align:center;font-weight:500;';
+        successMsg.textContent='「'+course+'」預約已成功取消！';
+        result.insertBefore(successMsg,result.firstChild);
+        setTimeout(()=>successMsg.remove(),4000);
       } else {
         showErr('取消失敗：'+(data.error||'未知錯誤'));
       }
