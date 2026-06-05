@@ -465,11 +465,25 @@ function submitForm(){
 function resetAll(){
   selDate=null;selSlots.clear();
   document.getElementById('page-done').style.display='none';
+  document.getElementById('page-form').style.display='none';
   document.getElementById('page-calendar').style.display='block';
   ['s1','s2','s3'].forEach((id,i)=>{document.getElementById(id).className='step'+(i===0?' active':'');document.getElementById('sn'+(i+1)).textContent=i+1;});
-  ['f-unit','f-name','f-empid','f-course','f-teacher','f-place','f-time-start','f-time-end'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-unit','f-name','f-empid','f-course','f-teacher','f-place'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('f-time-start').value='';
+  document.getElementById('f-time-end').value='';
   document.getElementById('f-email').value='@chimei.org.tw';
   document.querySelector('input[name="credit"][value="否"]').checked=true;
+  // 重置送出按鈕狀態
+  const btn=document.getElementById('submit-btn');
+  btn.disabled=false; btn.textContent='確認送出預約';
+  document.getElementById('loading-bar').style.display='none';
+  // 清除錯誤訊息
+  ['e-unit','e-name','e-empid','e-email','e-course','e-teacher','e-time','e-place'].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.textContent='';
+  });
+  ['f-unit','f-name','f-empid','f-email','f-course','f-teacher','f-place'].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.classList.remove('err');
+  });
   renderCal();renderSlots();
 }
 
