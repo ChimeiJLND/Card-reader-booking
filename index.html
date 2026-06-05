@@ -246,6 +246,18 @@
   </div>
 </div>
 
+<!-- 取消成功 Modal -->
+<div class="modal-overlay" id="success-modal">
+  <div class="modal-box">
+    <div class="modal-icon">✅</div>
+    <div class="modal-title" style="color:#27500A">取消成功！</div>
+    <div class="modal-desc" id="success-modal-desc"></div>
+    <div class="modal-btns">
+      <button class="modal-btn-confirm" style="background:#27500A;border-color:#27500A;" onclick="closeSuccessModal()">確認</button>
+    </div>
+  </div>
+</div>
+
 </div>
 
 <script>
@@ -330,6 +342,10 @@ function closeModal(){
   pendingCancel=null;
 }
 
+function closeSuccessModal(){
+  document.getElementById('success-modal').style.display='none';
+}
+
 function confirmCancel(){
   if(!pendingCancel)return;
   const {idx,createdAt,date,name,course}=pendingCancel;
@@ -342,11 +358,8 @@ function confirmCancel(){
         loadAllBookings();
         const result=document.getElementById('query-result');
         if(!result.querySelector('.record-card')) result.innerHTML='<div class="empty-state">查無借用記錄</div>';
-        const successMsg=document.createElement('div');
-        successMsg.style.cssText='background:#EAF3DE;border:1px solid #3B6D11;border-radius:8px;padding:12px 16px;font-size:13px;color:#27500A;margin-bottom:12px;text-align:center;font-weight:500;';
-        successMsg.textContent='「'+course+'」預約已成功取消！';
-        result.insertBefore(successMsg,result.firstChild);
-        setTimeout(()=>successMsg.remove(),4000);
+        document.getElementById('success-modal-desc').textContent='「'+course+'」預約已成功取消！';
+        document.getElementById('success-modal').style.display='flex';
       } else {
         showErr('取消失敗：'+(data.error||'未知錯誤'));
       }
